@@ -1,0 +1,4 @@
+chatapp$ [92.168.123.10] Wow this is such a cool app
+chatapp$ [92.158.28.12] I know don't get me started...
+chatapp$ [182.83.28.12] Wait why don't we have names?... only using IP address?
+chatapp$ /invite 128.43.12.5
