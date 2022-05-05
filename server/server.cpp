@@ -5,14 +5,12 @@
 #include <unistd.h>
 #include <network.h>
 
-#define PORT "9999"
+#define PORT "3490"
 #define BACKLOG_SIZE 10
 
 using namespace std;
 
 int main() {
-
-    char ipstr[INET6_ADDRSTRLEN];
 
     struct addrinfo hints;
     struct addrinfo *res;
@@ -33,8 +31,6 @@ int main() {
     int listener;
     struct addrinfo *p;
     for (p = res; p != NULL; p = p->ai_next) {
-    	print_addrinfo(*p);
-
     	listener = socket(p->ai_family, p->ai_socktype, p->ai_protocol);
         if (listener == -1) {
         	perror("socket");
@@ -44,17 +40,13 @@ int main() {
         if (setsockopt(listener, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)) == -1) {
         	perror("setsockopt");
         	exit(1);
-        } 
+        }
 
         if (bind(listener, p->ai_addr, p->ai_addrlen) == -1) {
         	close(listener);
         	perror("bind");
         	continue;
         }
-        
-        print_addrinfo(*p);
-
-        get_ip_addr_as_string(*p, &ipstr);
 
         break;
     }
@@ -71,13 +63,15 @@ int main() {
     	exit(1);
     }
 
-    printf("[server] listening at %s ...\n", ipstr);
+    printf("[server] socket fd %d listening at chat.johnsnlittle.com:%s ...\n", listener, PORT);
+    struct sockaddr connection;
+    socklen_t addr_size = sizeof(connection);
+    
+    fprintf(stderr,"about to try to accepted...");
+    int connection_fd = accept(listener, (struct sockaddr *)&connection, &addr_size);
 
-
-
-
-
-
+    printf("[server] connection accepted");
 
     return 0;
 }
+
