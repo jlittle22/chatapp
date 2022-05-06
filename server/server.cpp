@@ -4,8 +4,10 @@
 #include <string.h>
 #include <unistd.h>
 #include <network.h>
+#include <unordered_set>
+#include <sys/select.h>
 
-#define PORT "3490"
+#define PORT "9999"
 #define BACKLOG_SIZE 10
 
 using namespace std;
@@ -64,13 +66,60 @@ int main() {
     }
 
     printf("[server] socket fd %d listening at chat.johnsnlittle.com:%s ...\n", listener, PORT);
-    struct sockaddr connection;
-    socklen_t addr_size = sizeof(connection);
-    
-    fprintf(stderr,"about to try to accepted...");
-    int connection_fd = accept(listener, (struct sockaddr *)&connection, &addr_size);
 
-    printf("[server] connection accepted");
+    unordered_set<int> subscribers;
+    subscribers.insert(listener);
+
+    struct timeval timeout;
+    timeout.tv_sec = 2;
+    timeout.tv_usec = 0;
+    fd_set readfds;
+
+    char msg_buffer[10];
+
+    while(1) {
+        FD_ZERO(&readfds);
+        int max_fd = 0;
+        for (auto it = subscribers.begin(); it != subscribers.end(); it++) {
+            printf("loop %d\n", *it);
+            FD_SET(*it, &readfds);
+            if (*it > max_fd) {
+                max_fd = *it;
+            }
+        }
+
+        select(max_fd + 1, &readfds, NULL, NULL, NULL);
+        
+        for (auto it = subscribers.begin(); it != subscribers.end();) {
+            if (FD_ISSET(*it, &readfds)) {
+                if (*it == listener) {
+                    struct sockaddr connection;
+                    socklen_t addr_size = sizeof(connection);
+                    int new_connection_fd = accept(listener, (struct sockaddr *)&connection, &addr_size);
+                    if (new_connection_fd == -1) {
+                        printf("[server] failed to accept a connection.");
+                        continue;
+                    }
+                    subscribers.insert(new_connection_fd);
+                    it++;
+                } else {
+                    printf("[server] fd %d sent data\n", *it);
+                    int ret = recv(*it, msg_buffer, sizeof(msg_buffer), 0);
+                    if (ret == 0) {
+                        printf("[server] fd %d disconnected.", *it);
+                        close(*it);
+                        it = subscribers.erase(it);
+                    } else if (ret == -1) {
+                        perror("recv");
+                        close(*it);
+                        it = subscribers.erase(it);
+                    } else {
+                        it++;
+                    }
+                }
+            }
+        }      
+    }
 
     return 0;
 }
