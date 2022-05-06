@@ -6,6 +6,25 @@
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <poll.h>
+#include <inttypes.h>
+#include <string>
+
+class NetworkFormatter {
+public:
+	NetworkFormatter();
+	~NetworkFormatter();
+	void setOpCode(uint8_t oc);
+	void setMessage(std::string msg);
+    uint8_t getOpCode();
+    std::string getMessage();
+
+	void parseNetworkForm(std::string offTheWire);
+
+	std::string networkForm();
+private:
+    uint8_t op_code;
+    std::string msg;
+};
 
 void print_addrinfo(struct addrinfo p);
 
