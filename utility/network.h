@@ -9,6 +9,10 @@
 #include <inttypes.h>
 #include <string>
 
+// ISSUE: TCP doesn't guarantee all stream bytes will be read
+// in a single call to read, so longer messages can be split
+// between multiple reads. Should use a null terminator to mark
+// the end of a message and figure out a way to accumulate messages.
 
 class NetworkFormatter {
 public:
