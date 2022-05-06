@@ -1,3 +1,7 @@
+rm *.a *.o
+
 g++ -c *.cpp
 
 ar -rc libutility.a *.o
+
+rm *.o
