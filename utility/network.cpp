@@ -36,7 +36,7 @@ void NetworkFormatter::parseNetworkForm(string offTheWire) {
         fprintf(stderr, "Warning: The network data claims to be of length %u, but it's actually length %lu.\n", data_len, str_len);
     }
 
-    uint8_t op_code = uint8_t(offTheWire[OP_CODE_OFFSET]);
+    op_code = uint8_t(offTheWire[OP_CODE_OFFSET]);
 
     msg = offTheWire.substr(MESSAGE_OFFSET);
 
