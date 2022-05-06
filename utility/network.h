@@ -9,6 +9,7 @@
 #include <inttypes.h>
 #include <string>
 
+
 class NetworkFormatter {
 public:
 	NetworkFormatter();
@@ -25,6 +26,10 @@ private:
     uint8_t op_code;
     std::string msg;
 };
+
+std::string serialize_int(uint32_t x);
+
+uint32_t deserialize_int(std::string x);
 
 void print_addrinfo(struct addrinfo p);
 

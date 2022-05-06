@@ -9,7 +9,7 @@ using namespace std;
 #define OP_CODE_OFFSET 4
 #define MESSAGE_OFFSET 5
 
-static std::string serialize_int(uint32_t x) {
+std::string serialize_int(uint32_t x) {
   uint32_t network_x = htonl(x);
   std::stringstream sstream;
   const char* ptr = reinterpret_cast<char*>(&network_x);
@@ -17,7 +17,7 @@ static std::string serialize_int(uint32_t x) {
   return sstream.str();
 }
 
-static uint32_t deserialize_int(std::string x) {
+uint32_t deserialize_int(std::string x) {
   uint32_t new_item;
   std::stringstream ss(x);
   ss.read(reinterpret_cast<char*>(&new_item), sizeof(new_item));
