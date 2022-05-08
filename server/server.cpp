@@ -97,7 +97,6 @@ int main() {
                     } else if (ret < (int)(data_len - sizeof(msg_size_buffer))) {
                         printf("[server] Warning: client sent message that was shorter than expected. Got %lu when we expected %u...\n", ret + sizeof(msg_size_buffer), data_len);
                     }
-                    fprintf(stderr, "read all of msg\n");
                     string offTheWire(bytes, ret + sizeof(msg_size_buffer));
                     f.parseNetworkForm(offTheWire);
                     printf("\nReceived Message:\nsize: %d\nop code: %u\nmsg: %s\n", (int)f.getMessage().length(), f.getOpCode(), f.getMessage().c_str());
