@@ -8,7 +8,11 @@
 #include <poll.h>
 #include <inttypes.h>
 #include <string>
+#include <string.h>
 
+#define PORT "9999"
+#define TIMEOUT 1
+#define MSG_BUFFER_SIZE 256
 using namespace std;
 
 class ClientNetworkInterface {
@@ -19,7 +23,8 @@ public:
 	bool areMessages();
 	size_t sendMessage(string);
 private:
-
+    addrinfo* searchForHost(string);
+    int connectToHost(addrinfo*);
 };
 
 #endif
