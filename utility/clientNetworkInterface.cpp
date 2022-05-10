@@ -54,32 +54,6 @@ addrinfo* ClientNetworkInterface::searchForHost(string host) {
         exit(1);
     }   
 
-    char ipstr[INET6_ADDRSTRLEN];
-    for (addrinfo* p = res; p !=  NULL; p = p->ai_next) {
-        void *addr;
-        char *ipver;
-        uint16_t port;
-
-        // get the pointer to the address itself,
-        // different fields in IPv4 and IPv6:
-        if (p->ai_family == AF_INET) { // IPv4
-            struct sockaddr_in *ipv4 = (struct sockaddr_in *)p->ai_addr;
-            addr = &(ipv4->sin_addr);
-            port = htons(ipv4->sin_port);
-            ipver = "IPv4";
-        } else { // IPv6
-            struct sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)p->ai_addr;
-            addr = &(ipv6->sin6_addr);
-            port = htons(ipv6->sin6_port);
-            ipver = "IPv6";
-        }
-
-        // convert the IP to a string and print it:
-        inet_ntop(p->ai_family, addr, ipstr, sizeof ipstr);
-        
-        printf("  %s: %s:%d\n", ipver, ipstr, port);
-    }
-
     return res;
 }
 
