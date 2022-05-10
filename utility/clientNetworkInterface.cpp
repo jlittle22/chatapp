@@ -27,9 +27,7 @@ bool ClientNetworkInterface::areMessages() {
 size_t ClientNetworkInterface::sendMessage(string message) {
     const char* msg = message.c_str();
     size_t msg_len = strlen(msg);
-    printf("Message: %s\nLength: %lu\n", msg, msg_len);
     int bytes_sent = send(server_fd, msg, msg_len, 0);
-    printf("Sent: %d\n", bytes_sent);
     return 0;
 }
 

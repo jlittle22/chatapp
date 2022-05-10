@@ -9,6 +9,8 @@
 #include <inttypes.h>
 #include <string>
 
+#include "clientNetworkInterface.h" 
+
 // ISSUE: TCP doesn't guarantee all stream bytes will be read
 // in a single call to read, so longer messages can be split
 // between multiple reads. Should use a null terminator to mark
