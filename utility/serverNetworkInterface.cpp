@@ -13,7 +13,9 @@ ServerNetworkInterface::ServerNetworkInterface(int listener_fd, struct timeval t
     q_sig = PTHREAD_COND_INITIALIZER;
     listener = listener_fd;
     timeout = tv;
-    this->addSubscriber(listener);
+    pthread_mutex_lock(&subs_lock);
+    subscribers.insert(listener);
+    pthread_mutex_unlock(&subs_lock);
 }
 
 ServerNetworkInterface::~ServerNetworkInterface() {
@@ -27,7 +29,9 @@ void ServerNetworkInterface::broadcastMessage(string message, int fd_to_exclude)
 string ServerNetworkInterface::readNextMessage(int *fd_sender) {
     pthread_mutex_lock(&msgs_lock);
     while (messages.empty())
+        fprintf(stderr, "message q is empty... waiting.\n");
         pthread_cond_wait(&q_sig, &msgs_lock);
+         fprintf(stderr, "cond wait is done.\n");
     pair<int, string> res = messages.front();
     messages.pop();
     pthread_mutex_unlock(&msgs_lock);
@@ -140,6 +144,7 @@ void ServerNetworkInterface::monitorSubscribers() {
                 pthread_mutex_lock(&msgs_lock);
                 messages.push(p);
                 pthread_cond_signal(&q_sig);
+                 fprintf(stderr, "Cond signaled!\n");
                 pthread_mutex_unlock(&msgs_lock);
 
                 it++;
