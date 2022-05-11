@@ -1,2 +1,2 @@
-make $1
-$1/$1
+g++ -Wall -std=c++11 -L ../utility/  -I  ../utility/  -o client *.cpp -l utility -lncurses &&
+./client

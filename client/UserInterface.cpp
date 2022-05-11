@@ -1,32 +1,68 @@
 #include "UserInterface.h"
 
-string promptPrefix; 
+string promptPrefix;
+int linesWritten;
+
 
 UserInterface::UserInterface() {
-    // do nothing
-    promptPrefix = "> ";
+    initscr();
+    keypad(stdscr, TRUE);
+    noecho();
+    raw();
 }
 
 UserInterface::~UserInterface() {
-    // do nothing
+    endwin();
 }
 
 void UserInterface::display(string content) {
-    printf("%s\n", content.c_str());
+    printw("%d: %s\n", linesWritten, content.c_str());
+    linesWritten += 1;
+    refresh();
 }
 
 string UserInterface::prompt(string content) {
+    savePosition();
+    moveTo(80, 0);
     printf("%s", content.c_str());
-    return readLine();
+    string res = readLine();
+    clearLastLine();
+    restorePosition();
+    return res;
 }
 
 string UserInterface::prompt() {
-    printf("%s", promptPrefix);
-    return readLine();
+    savePosition();
+    moveTo(80, 0);
+    printf("%s", promptPrefix.c_str());
+    string res = readLine();
+    clearLastLine();
+    restorePosition();
+    return res;
 }
 
 string UserInterface::readLine() {
     char input[UI_INPUT_BUFFER_SIZE];
     fgets(input, UI_INPUT_BUFFER_SIZE, stdin);
-    return string(input, UI_INPUT_BUFFER_SIZE);
+    return string(input, strlen(input) - 1);
+}
+
+void UserInterface::savePosition() {
+    printf("\033[u");
+}
+
+void UserInterface::restorePosition() {
+    printf("\033[u");
+}
+
+void UserInterface::clearLastLine() {
+    printf("\033[1A \033[2K");
+}
+
+void UserInterface::moveTo(int row, int col) {
+    printf("\033[%d;%dH", row, col);
+}
+
+void UserInterface::clearScreen() {
+    printf("\033[2J\033[H");
 }

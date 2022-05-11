@@ -4,6 +4,7 @@
 #include <string>
 #include <stdio.h>
 #include <string.h>
+#include <ncurses.h>
 
 #define UI_INPUT_BUFFER_SIZE 256
 
@@ -18,6 +19,11 @@ class UserInterface {
         void display(string);     
     private:
         string readLine();
+        void clearLastLine();
+        void savePosition();
+        void restorePosition();
+        void moveTo(int, int);
+        void clearScreen();
 };
 
 

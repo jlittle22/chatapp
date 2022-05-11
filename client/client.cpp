@@ -2,22 +2,17 @@
 #include <string>
 #include <string.h>
 #include <iostream>
-#include <network.h>
+#include <stdlib.h>
+
 #include "UserInterface.h"
 
 using namespace std;
 
 int main(int argc, char* argv[]) {
-    
-    ClientNetworkInterface cni = ClientNetworkInterface("localhost");
     UserInterface ui = UserInterface();
     
     ui.display("Connected");
-    ui.display("Hello and welcome to ChatApp");
-    
-    string res = ui.prompt("Username: ");
-    ui.display("Hello " + res);
-    string msg = ui.prompt();
-    ui.display(msg);
+    ui.display("Hello and Welcome to ChatApp");
+    getch();
     return 0;
 }
