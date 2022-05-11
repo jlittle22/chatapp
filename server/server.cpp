@@ -4,6 +4,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <network.h>
+#include <serverNetworkInterface.h>
 #include <unordered_set>
 #include <sys/select.h>
 
@@ -13,103 +14,38 @@
 using namespace std;
 
 int listen(const char* port);
+void* monitor_thread(void*arg);
 
 int main() {
 
     int listener = listen(PORT);
 
-    unordered_set<int> subscribers;
-    subscribers.insert(listener);
-
     struct timeval timeout;
     timeout.tv_sec = 2;
     timeout.tv_usec = 0;
-    fd_set readfds;
 
-    char msg_size_buffer[sizeof(uint32_t)];
+    ServerNetworkInterface sni = ServerNetworkInterface(listener, timeout);
+    
+    pthread_t t;
+    pthread_create(&t, NULL, monitor_thread, &sni);
 
     NetworkFormatter f = NetworkFormatter();
 
-    while(1) {
-        FD_ZERO(&readfds);
-        int max_fd = 0;
-        for (auto it = subscribers.begin(); it != subscribers.end(); it++) {
-            FD_SET(*it, &readfds);
-            if (*it > max_fd) {
-                max_fd = *it;
-            }
-        }
-
-        select(max_fd + 1, &readfds, NULL, NULL, NULL);
-        
-        for (auto it = subscribers.begin(); it != subscribers.end();) {
-            if (FD_ISSET(*it, &readfds)) {
-                if (*it == listener) {
-                    struct sockaddr connection;
-                    socklen_t addr_size = sizeof(connection);
-                    int new_connection_fd = accept(listener, (struct sockaddr *)&connection, &addr_size);
-                    if (new_connection_fd == -1) {
-                        printf("[server] failed to accept a connection.\n");
-                        continue;
-                    }
-                    printf("[server] adding a connection (fd %d) to subscribers.\n", new_connection_fd);
-                    subscribers.insert(new_connection_fd);
-                    it++;
-                } else {
-                    printf("[server] fd %d sent data\n", *it);
-                    int ret = recv(*it, msg_size_buffer, sizeof(msg_size_buffer), 0);
-                    if (ret == 0) {
-                        printf("[server] fd %d disconnected.\n", *it);
-                        close(*it);
-                        it = subscribers.erase(it);
-                        continue;
-                    } else if (ret == -1) {
-                        perror("recv - incoming msg size");
-                        close(*it);
-                        it = subscribers.erase(it);
-                        continue;
-                    } else if (ret < (int)sizeof(msg_size_buffer)) {
-                        fprintf(stderr, "[server] client %d sent a message that was too short... ignoring.\n", *it);
-                        it++;
-                        continue;
-                    }
-                    string msg_size(msg_size_buffer, sizeof(msg_size_buffer));
-                    uint32_t data_len = deserialize_int(msg_size);
-                    printf("[server] receiving %u bytes...\n", data_len);
-
-                    char bytes[data_len];
-                    uint32_t i;
-                    for (i = 0; i < sizeof(msg_size_buffer); i++) {
-                        bytes[i] = msg_size_buffer[i];
-                    }
-
-                    ret = recv(*it, bytes + sizeof(msg_size_buffer), data_len - sizeof(msg_size_buffer), 0);
-                    if (ret == 0) {
-                        printf("[server] Warning: client %d disconnected mid-message.\n", *it);
-                        close(*it);
-                        it = subscribers.erase(it);
-                        continue;
-                    } else if (ret == -1) {
-                        perror("revc - incoming stream");
-                        close(*it);
-                        it = subscribers.erase(it);
-                        continue;
-                    } else if (ret < (int)(data_len - sizeof(msg_size_buffer))) {
-                        printf("[server] Warning: client sent message that was shorter than expected. Got %lu when we expected %u...\n", ret + sizeof(msg_size_buffer), data_len);
-                    }
-                    string offTheWire(bytes, ret + sizeof(msg_size_buffer));
-                    f.parseNetworkForm(offTheWire);
-                    printf("\nReceived Message:\nsize: %d\nop code: %u\nmsg: %s\n", (int)f.getMessage().length(), f.getOpCode(), f.getMessage().c_str());
-                    it++;
-                }
-            } else {
-                printf("[server] fd %d had nothing to read.\n", *it);
-                it++;
-            }
-        }      
+    int fd_sender = 0;
+    string msg = "";
+    while (1) {
+        msg = sni.readNextMessage(&fd_sender);
+        f.parseNetworkForm(msg);
+        printf("Sender: %d, Op code: %d, Msg: %s\n", fd_sender, f.getOpCode(), f.getMessage().c_str());
     }
 
     return 0;
+}
+
+void* monitor_thread(void* arg) {
+    ServerNetworkInterface *sni_ptr = (ServerNetworkInterface *)arg;
+    sni_ptr->monitorSubscribers();
+    return NULL;
 }
 
 int listen(const char* port) {

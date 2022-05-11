@@ -92,6 +92,26 @@ string NetworkFormatter::networkForm() {
     return forTheWire;
 }
 
+string sockaddr_to_ip_string(struct sockaddr * sa) {
+    char ipstr[INET6_ADDRSTRLEN];
+    if (sa->sa_family == AF_INET) {
+        // handle IPv4
+        if (inet_ntop(AF_INET, &(((struct sockaddr_in *)sa)->sin_addr), ipstr, INET_ADDRSTRLEN) == NULL) {
+            perror("[Network] sockaddr_to_ip_string");
+            return "ERROR";
+        }
+    } else {
+        // treat as IPv6
+        if (inet_ntop(sa->sa_family, &(((struct sockaddr_in6 *)sa)->sin6_addr), ipstr, INET6_ADDRSTRLEN) == NULL) {
+            perror("[Network] sockaddr_to_ip_string");
+            return "ERROR";
+        }
+    }
+
+    string res(ipstr, INET6_ADDRSTRLEN);
+    return res;
+}
+
 void get_ip_addr_as_string(struct addrinfo p, char (*ipstr)[46]) { 
     print_addrinfo(p);
     void *address;

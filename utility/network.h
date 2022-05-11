@@ -35,6 +35,8 @@ std::string serialize_int(uint32_t x);
 
 uint32_t deserialize_int(std::string x);
 
+std::string sockaddr_to_ip_string(struct sockaddr *sa);
+
 void print_addrinfo(struct addrinfo p);
 
 void get_ip_addr_as_string(struct addrinfo p, char (*ipstr)[46]);

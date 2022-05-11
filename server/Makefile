@@ -1,5 +1,5 @@
 CPP = g++
-CPPFLAGS = -Wall -std=c++11 -L $(LIB) -I $(LIB)
+CPPFLAGS = -Wall -std=c++11 -L $(LIB) -I $(LIB) -lpthread
 
 LIB := $(abspath $(dir $(lastword $(MAKEFILE_LIST)))/../utility/)
 
