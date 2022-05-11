@@ -28,11 +28,8 @@ void ServerNetworkInterface::broadcastMessage(string message, int fd_to_exclude)
 
 string ServerNetworkInterface::readNextMessage(int *fd_sender) {
     pthread_mutex_lock(&msgs_lock);
-    while (messages.empty()) {
-        fprintf(stderr, "message q is empty... waiting.\n");
+    while (messages.empty())
         pthread_cond_wait(&q_sig, &msgs_lock);
-        fprintf(stderr, "cond wait is done.\n");
-    }
     pair<int, string> res = messages.front();
     messages.pop();
     pthread_mutex_unlock(&msgs_lock);
@@ -145,7 +142,6 @@ void ServerNetworkInterface::monitorSubscribers() {
                 pthread_mutex_lock(&msgs_lock);
                 messages.push(p);
                 pthread_cond_signal(&q_sig);
-                 fprintf(stderr, "Cond signaled!\n");
                 pthread_mutex_unlock(&msgs_lock);
 
                 it++;

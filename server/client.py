@@ -7,7 +7,7 @@ msg = "Hello, this is a new chat. how are you?"
 
 #######################################
 
-host = "localhost"
+host = "chat.johnsnlittle.com"
 port = 9999
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect((host, port))
