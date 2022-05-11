@@ -19,7 +19,7 @@ ServerNetworkInterface::ServerNetworkInterface(int listener_fd, struct timeval t
 }
 
 ServerNetworkInterface::~ServerNetworkInterface() {
-    // do nothing
+    close(listener);
 }
 
 void ServerNetworkInterface::broadcastMessage(string message, int fd_to_exclude) {
@@ -28,10 +28,11 @@ void ServerNetworkInterface::broadcastMessage(string message, int fd_to_exclude)
 
 string ServerNetworkInterface::readNextMessage(int *fd_sender) {
     pthread_mutex_lock(&msgs_lock);
-    while (messages.empty())
+    while (messages.empty()) {
         fprintf(stderr, "message q is empty... waiting.\n");
         pthread_cond_wait(&q_sig, &msgs_lock);
-         fprintf(stderr, "cond wait is done.\n");
+        fprintf(stderr, "cond wait is done.\n");
+    }
     pair<int, string> res = messages.front();
     messages.pop();
     pthread_mutex_unlock(&msgs_lock);
