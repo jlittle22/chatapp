@@ -1,3 +1,5 @@
 **/*.[oa]
 server/server
 ./vscode/
+client/client
+client/run
