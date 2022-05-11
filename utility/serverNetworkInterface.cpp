@@ -16,21 +16,8 @@ ServerNetworkInterface::ServerNetworkInterface(int listener_fd, struct timeval t
     this->addSubscriber(listener);
 }
 
-
 ServerNetworkInterface::~ServerNetworkInterface() {
     // do nothing
-}
-
-void ServerNetworkInterface::addSubscriber(int fd) {
-    pthread_mutex_lock(&subs_lock);
-    subscribers.insert(fd);
-    pthread_mutex_unlock(&subs_lock);
-}
-
-void ServerNetworkInterface::removeSubscriber(int fd) {
-    pthread_mutex_lock(&subs_lock);
-    subscribers.erase(fd);
-    pthread_mutex_unlock(&subs_lock);
 }
 
 void ServerNetworkInterface::broadcastMessage(string message, int fd_to_exclude) {
