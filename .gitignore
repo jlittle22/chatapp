@@ -3,4 +3,5 @@ server/server
 ./vscode/
 client/client
 client/run
+server/.servpid
 **/*.txt

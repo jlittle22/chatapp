@@ -1,0 +1,3 @@
+read servpid < .servpid
+echo "killing server proc (id = $servpid)"
+kill $servpid
