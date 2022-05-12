@@ -32,7 +32,7 @@ int main() {
     NetworkFormatter f = NetworkFormatter();
 
     string msg = "";
-    SubscriberContext c;
+    ServerNetworkInterface::SubscriberContext c;
     
     while (1) {
         msg = sni.readNextMessage(&c);

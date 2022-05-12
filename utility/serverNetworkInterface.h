@@ -8,15 +8,15 @@
 #include <pthread.h>
 #include <utility>
 
-struct SubscriberContext {
-    std::string ip_str;
-    int fd;
-};
 
 class ServerNetworkInterface {
     public:
         ServerNetworkInterface(int listener_fd, struct timeval timeout);
         ~ServerNetworkInterface();
+        struct SubscriberContext {
+            std::string ip_str;
+            int fd;
+        };
         void broadcastMessage(std::string message, int fd_to_exclude);
         void sendMessage(std::string message, int destination_fd);
         std::string readNextMessage(SubscriberContext *sender);
