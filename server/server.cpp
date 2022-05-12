@@ -31,13 +31,14 @@ int main() {
 
     NetworkFormatter f = NetworkFormatter();
 
-    int fd_sender = 0;
     string msg = "";
+    SubscriberContext c;
+    
     while (1) {
-        msg = sni.readNextMessage(&fd_sender);
+        msg = sni.readNextMessage(&c);
         f.parseNetworkForm(msg);
-        printf("Sender: %d, Op code: %d, Msg: %s\n", fd_sender, f.getOpCode(), f.getMessage().c_str());
-        sni.sendMessage("Hello this is a response.", fd_sender);
+        printf("Sender: %d, Op code: %d, Msg: %s\n", c.fd, f.getOpCode(), f.getMessage().c_str());
+        sni.sendMessage("Hello this is a response.", c.fd);
     }
 
     return 0;
