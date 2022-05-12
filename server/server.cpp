@@ -37,6 +37,7 @@ int main() {
         msg = sni.readNextMessage(&fd_sender);
         f.parseNetworkForm(msg);
         printf("Sender: %d, Op code: %d, Msg: %s\n", fd_sender, f.getOpCode(), f.getMessage().c_str());
+        sni.sendMessage("Hello this is a response.", fd_sender);
     }
 
     return 0;

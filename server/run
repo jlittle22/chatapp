@@ -1,2 +1,7 @@
+echo "building ..."
+make
+echo "running ..."
 ./server > server_log.txt &
+echo "cleaning up ..."
 echo $! > .servpid
+echo "complete."
