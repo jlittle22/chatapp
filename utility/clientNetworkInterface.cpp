@@ -71,10 +71,10 @@ int ClientNetworkInterface::connectToHost(addrinfo* address) {
     struct timeval tv;
     tv.tv_sec = TIMEOUT;
     tv.tv_usec = 0;
-    if (setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, (const char*) &tv, sizeof(tv)) != 0) {
-        perror("setsockopt");
-        exit(1);
-    }
+    // if (setsockopt(socket_fd, SOL_SOCKET, SO_RCVTIMEO, (const char*) &tv, sizeof(tv)) != 0) {
+    //     perror("setsockopt");
+    //     exit(1);
+    // }
 
     
     return socket_fd;
