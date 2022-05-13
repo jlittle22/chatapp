@@ -27,7 +27,17 @@ int main() {
     ServerNetworkInterface sni = ServerNetworkInterface(listener, timeout);
     
     pthread_t t;
-    pthread_create(&t, NULL, monitor_thread, &sni);
+    if (pthread_create(&t, NULL, monitor_thread, &sni) != 0) {
+        fprintf(stderr, "[Server] Fatal Error: failed to create monitoring thread.\n");
+        perror("pthread_create");
+        return 1;
+    }
+
+    if (pthread_detach(t) != 0) {
+        fprintf(stderr, "[Server] Fatal Error: failed to detatch monitoring thread.\n");
+        perror("pthread_detach");
+        return 1;
+    }
 
     NetworkFormatter f = NetworkFormatter();
 
