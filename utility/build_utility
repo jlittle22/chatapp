@@ -1,6 +1,6 @@
 rm *.a *.o
 
-g++ -c *.cpp
+g++ -std=c++11 -c *.cpp
 
 ar -rc libutility.a *.o
 

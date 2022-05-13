@@ -7,31 +7,69 @@
 
 using namespace std;
 
+static int safeSend(int fd, const void* msg, int len, int flags) {
+    int bytes_sent = 0;
+    while (bytes_sent < len) {
+        int res = send(fd, (char*)msg + bytes_sent, len - bytes_sent, flags);
+        if (res == -1) {
+            return -1;
+        }
+        bytes_sent += res;
+    }
+
+    return bytes_sent;
+} 
+
+void ServerNetworkInterface::sendMessage(std::string message, int destination_fd) {
+    if (safeSend(destination_fd, message.c_str(), message.length(), 0) == -1) {
+        perror("[ServerNetworkInterface] sendMessage -- safeSend");
+    }
+}
+
 ServerNetworkInterface::ServerNetworkInterface(int listener_fd, struct timeval tv) {
     subs_lock = PTHREAD_MUTEX_INITIALIZER;
     msgs_lock = PTHREAD_MUTEX_INITIALIZER;
     q_sig = PTHREAD_COND_INITIALIZER;
     listener = listener_fd;
     timeout = tv;
-    this->addSubscriber(listener);
+
+
+    SubscriberContext *c = new SubscriberContext();
+    c->fd = listener;
+    pthread_mutex_lock(&subs_lock);
+    subscribers[listener] = c;
+    pthread_mutex_unlock(&subs_lock);
 }
 
 ServerNetworkInterface::~ServerNetworkInterface() {
-    // do nothing
+    close(listener);
 }
 
 void ServerNetworkInterface::broadcastMessage(string message, int fd_to_exclude) {
-    
+    pthread_mutex_lock(&subs_lock);
+    for (auto it = subscribers.begin(); it != subscribers.end();) {
+        if (it->first != fd_to_exclude) {
+            if (safeSend(it->first, message.c_str(), message.length(), 0) == -1) {
+                perror("[ServerNetworkInterface] broadcastMessage -- safeSend");
+                delete it->second;
+                it = subscribers.erase(it);
+                continue;
+            }
+        }
+        it++;
+    }
+    pthread_mutex_unlock(&subs_lock);   
 }
 
-string ServerNetworkInterface::readNextMessage(int *fd_sender) {
+string ServerNetworkInterface::readNextMessage(SubscriberContext *sender) {
     pthread_mutex_lock(&msgs_lock);
     while (messages.empty())
         pthread_cond_wait(&q_sig, &msgs_lock);
-    pair<int, string> res = messages.front();
+    pair<SubscriberContext, string> res = messages.front();
     messages.pop();
     pthread_mutex_unlock(&msgs_lock);
-    *fd_sender = get<0>(res);
+    sender->fd = get<0>(res).fd;
+    sender->ip_str = get<0>(res).ip_str;
     return get<1>(res);
 }
 
@@ -51,7 +89,10 @@ void ServerNetworkInterface::acceptConnection() {
         return;
     }
     printf("[ServerNetworkInterface] New connection is from IP address: %s\n", sockaddr_to_ip_string(&connection).c_str()); 
-    subscribers.insert(new_conn_fd);
+    SubscriberContext *c = new SubscriberContext();
+    c->fd = new_conn_fd;
+    c->ip_str = sockaddr_to_ip_string(&connection);
+    subscribers[new_conn_fd] = c;
 }
 
 void ServerNetworkInterface::monitorSubscribers() {
@@ -62,8 +103,8 @@ void ServerNetworkInterface::monitorSubscribers() {
         int max_fds = 0;
         pthread_mutex_lock(&subs_lock);
         for (auto it = subscribers.begin(); it != subscribers.end(); it++) {
-            if (*it > max_fds) max_fds = *it;
-            FD_SET(*it, &readfds);
+            if (it->first > max_fds) max_fds = it->first;
+            FD_SET(it->first, &readfds);
         }
         pthread_mutex_unlock(&subs_lock);    
         
@@ -71,8 +112,8 @@ void ServerNetworkInterface::monitorSubscribers() {
 
         pthread_mutex_lock(&subs_lock);
         for (auto it = subscribers.begin();  it != subscribers.end();) {
-            if (FD_ISSET(*it, &readfds)) {
-                if (*it == listener) {
+            if (FD_ISSET(it->first, &readfds)) {
+                if (it->first == listener) {
                     this->acceptConnection();
                     it++;
                     continue;
@@ -81,17 +122,19 @@ void ServerNetworkInterface::monitorSubscribers() {
                 char msg_size_buffer[sizeof(uint32_t)];
                 int bytes_read = 0;
                 while (bytes_read < sizeof(msg_size_buffer)) {
-                    int res = recv(*it, msg_size_buffer + bytes_read, sizeof(msg_size_buffer) - bytes_read, 0);
+                    int res = recv(it->first, msg_size_buffer + bytes_read, sizeof(msg_size_buffer) - bytes_read, 0);
                     if (res == 0) {
                         // client disconnected early
-                        printf("[ServerNetworkInterface] Client %d disconnected.\n", *it);
-                        close(*it);
+                        printf("[ServerNetworkInterface] Client %d disconnected.\n", it->first);
+                        close(it->first);
+                        delete it->second;
                         it = subscribers.erase(it);
                         break;
                     } else if (res == -1) {
                         // error
                         perror("[ServerNetworkInterface] monitorSubscribers -- recv");
-                        close(*it);
+                        close(it->first);
+                        delete it->second;
                         it = subscribers.erase(it);
                         break;
                     } else {
@@ -112,15 +155,17 @@ void ServerNetworkInterface::monitorSubscribers() {
                 }
 
                 while(bytes_read < msg_size) {
-                    int res = recv(*it, bytes + bytes_read, msg_size - bytes_read, 0);
+                    int res = recv(it->first, bytes + bytes_read, msg_size - bytes_read, 0);
                     if (res == 0) {
-                        printf("[ServerNetworkInterface] Client %d disconnected unexpectedly.\n", *it);
-                        close(*it);
+                        printf("[ServerNetworkInterface] Client %d disconnected unexpectedly.\n", it->first);
+                        close(it->first);
+                        delete it->second;
                         it = subscribers.erase(it);
                         break;
                     } else if (res == -1) {
                         perror("[ServerNetworkInterface] monitorSubscribers -- recv");
-                        close(*it);
+                        close(it->first);
+                        delete(it->second);
                         it = subscribers.erase(it);
                         break;
                     } else {
@@ -133,8 +178,8 @@ void ServerNetworkInterface::monitorSubscribers() {
                 }
 
                 string bytes_str(bytes, msg_size);
-                pair<int, string> p;
-                p.first = *it;
+                pair<SubscriberContext, string> p;
+                p.first = *(it->second);
                 p.second = bytes_str;
 
                 pthread_mutex_lock(&msgs_lock);
