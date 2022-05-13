@@ -22,6 +22,7 @@ while True:
             if data:
                 data = str(data.decode()) + " < send back from server"
                 connection.sendall(bytearray(data.encode()))
+                print('sent "%s"' % data)
             else:
                 break
     finally:
