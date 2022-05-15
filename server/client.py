@@ -7,7 +7,7 @@ msg = "Hello, this is a new chat. how are you?"
 
 #######################################
 
-host = "chat.johnsnlittle.com"
+host = "localhost"
 port = 9999
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect((host, port))
@@ -20,6 +20,8 @@ send_data = length_encoded + op_code_encoded + msg_encoded
 print("sending ", len(send_data), " bytes to ", host, ":", port, sep="")
 s.sendall(send_data)
 
-# data = s.recv(1024)
+data = s.recv(1024)
+print(type(data))
 s.close()
-# print('Received', repr(data))
+
+print('Received', repr(data))

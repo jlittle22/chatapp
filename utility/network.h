@@ -11,26 +11,34 @@
 
 #include "clientNetworkInterface.h" 
 
-// ISSUE: TCP doesn't guarantee all stream bytes will be read
-// in a single call to read, so longer messages can be split
-// between multiple reads. Should use a null terminator to mark
-// the end of a message and figure out a way to accumulate messages.
+
+//////
+// OPCODES
+//////
+
+enum Opcodes {
+	C2S_CHAT_SENT = 0,
+	S2C_CHAT_ACK,
+	S2C_CHAT_SENT
+};
 
 class NetworkFormatter {
 public:
 	NetworkFormatter();
 	~NetworkFormatter();
-	void setOpCode(uint8_t oc);
-	void setMessage(std::string msg);
-    uint8_t getOpCode();
-    std::string getMessage();
+	void setOpcode(uint8_t oc);
+	void setData(std::string msg);
+    uint8_t getOpcode();
+    std::string getData();
 
 	void parseNetworkForm(std::string offTheWire);
 
 	std::string networkForm();
 private:
-    uint8_t op_code;
-    std::string msg;
+    uint8_t opcode;
+    std::string data;
+
+	
 };
 
 std::string serialize_int(uint32_t x);
