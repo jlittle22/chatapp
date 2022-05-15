@@ -19,7 +19,8 @@
 enum Opcodes {
 	C2S_CHAT_SENT = 0,
 	S2C_CHAT_ACK,
-	S2C_CHAT_SENT
+	S2C_CHAT_SENT,
+	S2C_ERROR
 };
 
 class NetworkFormatter {
