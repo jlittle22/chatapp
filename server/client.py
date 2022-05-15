@@ -21,7 +21,5 @@ print("sending ", len(send_data), " bytes to ", host, ":", port, sep="")
 s.sendall(send_data)
 
 data = s.recv(1024)
-print(type(data))
 s.close()
-
 print('Received', repr(data))
