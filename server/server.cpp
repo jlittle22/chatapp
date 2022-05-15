@@ -33,12 +33,6 @@ int main() {
         return 1;
     }
 
-    if (pthread_detach(t) != 0) {
-        fprintf(stderr, "[Server] Fatal Error: failed to detatch monitoring thread.\n");
-        perror("pthread_detach");
-        return 1;
-    }
-
     NetworkFormatter f = NetworkFormatter();
 
     string msg = "";
@@ -48,7 +42,9 @@ int main() {
         msg = sni.readNextMessage(&c);
         f.parseNetworkForm(msg);
         printf("Sender: %d, Op code: %d, Msg: %s\n", c.fd, f.getOpCode(), f.getMessage().c_str());
-        sni.sendMessage("Hello this is a response.", c.fd);
+        switch(f.getOpCode()) {
+        case 
+        }
     }
 
     return 0;

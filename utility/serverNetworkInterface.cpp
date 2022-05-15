@@ -42,8 +42,12 @@ ServerNetworkInterface::ServerNetworkInterface(int listener_fd, struct timeval t
 }
 
 ServerNetworkInterface::~ServerNetworkInterface() {
-    close(listener);
+    fprintf(stderr, "I'm called.\n");
+    for (auto it = subscribers.begin(); it != subscribers.end();) {
+        it = eraseSubscriber(it);
+    }
 }
+
 
 void ServerNetworkInterface::broadcastMessage(string message, int fd_to_exclude) {
     pthread_mutex_lock(&subs_lock);
@@ -51,8 +55,7 @@ void ServerNetworkInterface::broadcastMessage(string message, int fd_to_exclude)
         if (it->first != fd_to_exclude) {
             if (safeSend(it->first, message.c_str(), message.length(), 0) == -1) {
                 perror("[ServerNetworkInterface] broadcastMessage -- safeSend");
-                delete it->second;
-                it = subscribers.erase(it);
+                it = eraseSubscriber(it);
                 continue;
             }
         }
@@ -68,8 +71,7 @@ string ServerNetworkInterface::readNextMessage(SubscriberContext *sender) {
     pair<SubscriberContext, string> res = messages.front();
     messages.pop();
     pthread_mutex_unlock(&msgs_lock);
-    sender->fd = get<0>(res).fd;
-    sender->ip_str = get<0>(res).ip_str;
+    *sender = get<0>(res);
     return get<1>(res);
 }
 
@@ -126,16 +128,12 @@ void ServerNetworkInterface::monitorSubscribers() {
                     if (res == 0) {
                         // client disconnected early
                         printf("[ServerNetworkInterface] Client %d disconnected.\n", it->first);
-                        close(it->first);
-                        delete it->second;
-                        it = subscribers.erase(it);
+                        it = eraseSubscriber(it);
                         break;
                     } else if (res == -1) {
                         // error
                         perror("[ServerNetworkInterface] monitorSubscribers -- recv");
-                        close(it->first);
-                        delete it->second;
-                        it = subscribers.erase(it);
+                        it = eraseSubscriber(it);
                         break;
                     } else {
                         bytes_read += res;
@@ -158,15 +156,11 @@ void ServerNetworkInterface::monitorSubscribers() {
                     int res = recv(it->first, bytes + bytes_read, msg_size - bytes_read, 0);
                     if (res == 0) {
                         printf("[ServerNetworkInterface] Client %d disconnected unexpectedly.\n", it->first);
-                        close(it->first);
-                        delete it->second;
-                        it = subscribers.erase(it);
+                        it = eraseSubscriber(it);
                         break;
                     } else if (res == -1) {
                         perror("[ServerNetworkInterface] monitorSubscribers -- recv");
-                        close(it->first);
-                        delete(it->second);
-                        it = subscribers.erase(it);
+                        it = eraseSubscriber(it);
                         break;
                     } else {
                         bytes_read += res;
@@ -197,4 +191,8 @@ void ServerNetworkInterface::monitorSubscribers() {
     }
 }
 
-
+ServerNetworkInterface::SubscribersMap::iterator ServerNetworkInterface::eraseSubscriber(ServerNetworkInterface::SubscribersMap::iterator it) {
+    close(it->first);
+    delete it->second;
+    return subscribers.erase(it);
+}

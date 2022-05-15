@@ -23,13 +23,16 @@ class ServerNetworkInterface {
         void monitorSubscribers();
 
     private:
+        typedef std::queue<std::pair<SubscriberContext, std::string>> MessagesQueue;
+        typedef std::unordered_map<int, SubscriberContext*> SubscribersMap;
         int listener;
         struct timeval timeout;
         pthread_mutex_t subs_lock;
         pthread_mutex_t msgs_lock;
         pthread_cond_t q_sig;
-        std::queue<std::pair<SubscriberContext, std::string>> messages;
-        std::unordered_map<int, SubscriberContext*> subscribers;
+        MessagesQueue messages;
+        SubscribersMap subscribers;
+        SubscribersMap::iterator eraseSubscriber(SubscribersMap::iterator it);
         void acceptConnection();
 };
 
