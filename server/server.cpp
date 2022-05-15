@@ -47,8 +47,10 @@ int main() {
     while (1) {
         msg = sni.readNextMessage(&c);
         f.parseNetworkForm(msg);
-        printf("Sender: %d, Op code: %d, Msg: %s\n", c.fd, f.getOpCode(), f.getMessage().c_str());
-        sni.sendMessage("Hello this is a response.", c.fd);
+        printf("Sender: %d, Op code: %d, Msg: %s\n", c.fd, f.getOpcode(), f.getData().c_str());
+        f.setOpcode(S2C_CHAT_ACK);
+        f.setData("");
+        sni.sendMessage(f.networkForm(), c.fd);
     }
 
     return 0;

@@ -6,8 +6,8 @@
 using namespace std;
 
 #define STREAM_LEN_OFFSET 0
-#define OP_CODE_OFFSET 4
-#define MESSAGE_OFFSET 5
+#define OPCODE_OFFSET 4
+#define DATA_OFFSET 5
 
 std::string serialize_int(uint32_t x) {
   uint32_t network_x = htonl(x);
@@ -25,51 +25,62 @@ uint32_t deserialize_int(std::string x) {
 }
 
 NetworkFormatter::NetworkFormatter() {
-    op_code = 0;  // default to sending a chat message
-    msg = "";
+    opcode = 0;  // default to sending a chat message
+    data = "";
 }
 
 void NetworkFormatter::parseNetworkForm(string offTheWire) {
     size_t str_len = offTheWire.length();
     uint32_t data_len = deserialize_int(offTheWire.substr(STREAM_LEN_OFFSET, sizeof(uint32_t)));
+    
     if (str_len != data_len) {
         fprintf(stderr, "Warning: The network data claims to be of length %u, but it's actually length %lu.\n", data_len, str_len);
     }
 
-    op_code = uint8_t(offTheWire[OP_CODE_OFFSET]);
+    opcode = uint8_t(offTheWire[OPCODE_OFFSET]);
 
-    msg = offTheWire.substr(MESSAGE_OFFSET);
+    switch(opcode) {
+        case C2S_CHAT_SENT: {
+            data = offTheWire.substr(DATA_OFFSET);
+            
+            if (data.length() != data_len - DATA_OFFSET) {
+                fprintf(stderr, "Warning in opcode %d: The network claims that the message is %u bytes long, but it's actually %lu.\n", opcode, data_len - DATA_OFFSET, data.length());
+            }
 
-    if (msg.length() != data_len - MESSAGE_OFFSET) {
-        fprintf(stderr, "Warning: The network claims that the message is %u bytes long, but it's actually %lu.\n", data_len - MESSAGE_OFFSET, msg.length());
-    }
+            break;
+        } case S2C_CHAT_ACK: {
+            break;
+        } default: {
+            fprintf(stderr, "Warning: Unknown opcode %u.\n", opcode);
+        }
+    }    
 }
 
-uint8_t NetworkFormatter::getOpCode() {
-    return op_code;
+uint8_t NetworkFormatter::getOpcode() {
+    return opcode;
 }
 
-string NetworkFormatter::getMessage() {
-    return msg;
+string NetworkFormatter::getData() {
+    return data;
 }
 
 NetworkFormatter::~NetworkFormatter() {
     // do nothing
 }
 
-void NetworkFormatter::setOpCode(uint8_t oc) {
-    op_code = oc;
+void NetworkFormatter::setOpcode(uint8_t oc) {
+    opcode = oc;
 }
 
-void NetworkFormatter::setMessage(string m) {
-    msg = m;
+void NetworkFormatter::setData(string m) {
+    data = m;
 }
 
 string NetworkFormatter::networkForm() {
-    size_t msg_len = msg.length();
-    uint32_t stream_size = sizeof(uint32_t) + sizeof(uint8_t) + msg_len;
+    size_t data_len = data.length();
+    uint32_t stream_size = sizeof(uint32_t) + sizeof(uint8_t) + data_len;
     string num_bytes_str = serialize_int(stream_size);
-    char op_code_char = char(op_code);
+    char opcode_char = char(opcode);
 
     char bytes[stream_size];
     size_t i;
@@ -77,15 +88,23 @@ string NetworkFormatter::networkForm() {
         bytes[i] = num_bytes_str[i];
     }
 
-    bytes[i++] = op_code_char;
-    
-    size_t j;
-    for (j = 0; j < msg_len; j++) {
-        bytes[j + i] = msg[j];
-    }
+    bytes[i++] = opcode_char;
 
-    if (j + i != stream_size) {
-        fprintf(stderr, "Error: j + i == %lu but stream_size == %d\n", j+i, stream_size);
+    switch(opcode) {
+        case C2S_CHAT_SENT: {
+            size_t j;
+            for (j = 0; j < data_len; j++) {
+                bytes[i + j] = data[j];
+            }
+
+            if (j + i != stream_size) {
+                fprintf(stderr, "Error: j + i == %lu but stream_size == %d\n", j+i, stream_size);
+            }
+            break;
+        }
+        case S2C_CHAT_ACK: {
+            break;
+        }
     }
 
     string forTheWire(bytes, stream_size);
