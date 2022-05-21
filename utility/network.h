@@ -9,9 +9,6 @@
 #include <inttypes.h>
 #include <string>
 
-#include "clientNetworkInterface.h" 
-
-
 //////
 // OPCODES
 //////

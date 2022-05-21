@@ -13,17 +13,17 @@
 #define PORT "9999"
 #define TIMEOUT 1
 #define MSG_BUFFER_SIZE 256
-using namespace std;
 
 class ClientNetworkInterface {
 public:
-	ClientNetworkInterface(string);
+	ClientNetworkInterface(std::string);
 	~ClientNetworkInterface();
-	string readNext();
+    std::string readNextMessage();
 	bool areMessages();
-	size_t sendMessage(string);
+	size_t sendMessage(std::string);
 private:
-    addrinfo* searchForHost(string);
+    int server_fd;
+    addrinfo* searchForHost(std::string);
     int connectToHost(addrinfo*);
 };
 
