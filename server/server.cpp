@@ -7,6 +7,8 @@
 #include <serverNetworkInterface.h>
 #include <unordered_set>
 #include <sys/select.h>
+#include <iostream>
+#include <signal.h>
 
 #define PORT "9999"
 #define BACKLOG_SIZE 10
@@ -17,7 +19,8 @@ int listen(const char* port);
 void* monitor_thread(void*arg);
 
 int main() {
-
+    signal(SIGPIPE, SIG_IGN);
+    
     int listener = listen(PORT);
 
     struct timeval timeout;
@@ -41,9 +44,21 @@ int main() {
     while (1) {
         msg = sni.readNextMessage(&c);
         f.parseNetworkForm(msg);
-        printf("Sender: %d, Op code: %d, Msg: %s\n", c.fd, f.getOpCode(), f.getMessage().c_str());
-        switch(f.getOpCode()) {
-        case 
+        printf("Sender: %d, Op code: %d, Msg: %s\n", c.fd, f.getOpcode(), f.getData().c_str());
+        switch(f.getOpcode()) {
+            case C2S_CHAT_SENT: {
+                // need to read message, broadcast it to all clients except sender
+                sni.broadcastMessage(f.getData(), c.fd);
+                f.setOpcode(S2C_CHAT_ACK);
+                f.setData("");
+                sni.sendMessage(f.networkForm(), c.fd);
+                break;
+            }
+            default:
+                printf("Unknown operation: %d... ignoring.\n", f.getOpcode());
+                f.setOpcode(S2C_ERROR);
+                f.setData("");
+                sni.sendMessage(f.networkForm(), c.fd);
         }
     }
 

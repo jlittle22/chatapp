@@ -52,7 +52,7 @@ ServerNetworkInterface::~ServerNetworkInterface() {
 void ServerNetworkInterface::broadcastMessage(string message, int fd_to_exclude) {
     pthread_mutex_lock(&subs_lock);
     for (auto it = subscribers.begin(); it != subscribers.end();) {
-        if (it->first != fd_to_exclude) {
+        if (it->first != fd_to_exclude && it->first != listener) {
             if (safeSend(it->first, message.c_str(), message.length(), 0) == -1) {
                 perror("[ServerNetworkInterface] broadcastMessage -- safeSend");
                 it = eraseSubscriber(it);
