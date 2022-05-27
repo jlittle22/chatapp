@@ -96,10 +96,7 @@ bool ClientNetworkInterface::areMessages() {
     return false;
 }
 
-size_t ClientNetworkInterface::sendMessage(string message) {
-    nformat.setData(message);
-    nformat.setOpcode(C2S_CHAT_SENT);
-    string fmessage = nformat.networkForm();
+size_t ClientNetworkInterface::sendMessage(string fmessage) {
     const char* msg = fmessage.c_str();
     size_t msg_len = fmessage.length();
     printf("%lu", msg_len);
