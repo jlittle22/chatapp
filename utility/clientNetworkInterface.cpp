@@ -98,8 +98,12 @@ bool ClientNetworkInterface::areMessages() {
 }
 
 size_t ClientNetworkInterface::sendMessage(string message) {
-    const char* msg = message.c_str();
-    size_t msg_len = strlen(msg);
+    nformat.setData(message);
+    nformat.setOpcode(C2S_CHAT_SENT);
+    string fmessage = nformat.networkForm();
+    const char* msg = fmessage.c_str();
+    size_t msg_len = fmessage.length();
+    printf("%lu", msg_len);
     int bytes_sent = safeSend(server_fd, msg, msg_len, 0);
     
     // @BRADEN: Add error handling here.

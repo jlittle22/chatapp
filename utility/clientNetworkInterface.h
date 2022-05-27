@@ -9,10 +9,13 @@
 #include <inttypes.h>
 #include <string>
 #include <string.h>
+#include "network.h"
 
 #define PORT "9999"
 #define TIMEOUT 1
 #define MSG_BUFFER_SIZE 256
+
+using namespace std;
 
 class ClientNetworkInterface {
 public:

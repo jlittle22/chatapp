@@ -19,7 +19,6 @@ enum Opcodes {
 	S2C_CHAT_SENT,
 	S2C_ERROR
 };
-
 class NetworkFormatter {
 public:
 	NetworkFormatter();
