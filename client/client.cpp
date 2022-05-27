@@ -22,6 +22,7 @@ int main(int argc, char* argv[]) {
     ClientNetworkInterface cni = ClientNetworkInterface("chat.johnsnlittle.com");
     UserInterface ui = UserInterface();
     ThreadPackage threadPackage = ThreadPackage();
+    NetworkFormatter nformat = NetworkFormatter();
     threadPackage.ui = &ui;
     threadPackage.cni = &cni;
     pthread_t remoteMessageListener;
@@ -30,7 +31,10 @@ int main(int argc, char* argv[]) {
     // todo - better end condition
     while(1) {
         string res = ui.prompt();
-        cni.sendMessage(res);
+        nformat.setData(res);
+        nformat.setOpcode(C2S_CHAT_SENT);
+        string fmessage = nformat.networkForm();
+        cni.sendMessage(fmessage);
     }
 
     // wait for completion
