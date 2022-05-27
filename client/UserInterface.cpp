@@ -77,6 +77,7 @@ string UserInterface::prompt(string prefix) {
             case ASCI_ENTER:
                 if (currentMessage.length() >= 1) {
                     printPrompt(prefix, "");
+                    messageHistory.push_back(currentMessage);
                     return currentMessage;
                 }
                 break;

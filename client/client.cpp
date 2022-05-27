@@ -19,7 +19,7 @@ typedef struct threadPackage_t {
 void* handleMessaging(void*);
 
 int main(int argc, char* argv[]) {
-    ClientNetworkInterface cni = ClientNetworkInterface("localhost");
+    ClientNetworkInterface cni = ClientNetworkInterface("chat.johnsnlittle.com");
     UserInterface ui = UserInterface();
     ThreadPackage threadPackage = ThreadPackage();
     threadPackage.ui = &ui;
@@ -46,7 +46,7 @@ void* handleMessaging(void* in) {
     UserInterface* ui = tp->ui;
     // todo make better end condition
     while(1) {
-        string res = cni->readNext();
+        string res = cni->readNextMessage();
         ui->display(res);
     }
     return NULL;
