@@ -41,8 +41,11 @@ int main() {
     string msg = "";
     ServerNetworkInterface::SubscriberContext c;
     
+    cerr << "Top of while loop!" << endl; 
     while (1) {
+        cerr << "waiting for new msg" << endl;
         msg = sni.readNextMessage(&c);
+        cerr << "Message read." << endl;
         f.parseNetworkForm(msg);
         printf("Sender: %d, Op code: %d, Msg: %s\n", c.fd, f.getOpcode(), f.getData().c_str());
         switch(f.getOpcode()) {

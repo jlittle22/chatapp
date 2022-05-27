@@ -23,10 +23,9 @@ public:
 	size_t sendMessage(std::string);
 private:
     int server_fd;
-	NetworkFormatter nformat;
     addrinfo* searchForHost(std::string);
     int connectToHost(addrinfo*);
-	string readString(int, int);
+    std::string readString(int, int);
 	void readUntilFull(int, char*, int);
 };
 
