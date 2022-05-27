@@ -17,13 +17,9 @@ while True:
     try:
         print('client connected:', client_address)
         while True:
-            data = connection.recv(4000)
-            print('received "%s"' % data)
-            if data:
-                data = str(data.decode()) + " < send back from server"
-                connection.sendall(bytearray(data.encode()))
-                print('sent "%s"' % data)
-            else:
-                break
+            res = input(">")
+            res = str(len(res).to_bytes(4, "big"))  + res
+            print("sending ", res)
+            connection.sendall(bytearray(res.encode()))
     finally:
         connection.close()

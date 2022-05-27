@@ -137,11 +137,9 @@ void UserInterface::prerender() {
 }
 
 void UserInterface::printMessageRange() {
-    printw("Getting mutex");
     messageHistoryMutex.lock();
-    printw("printing");
     for (int i = 0; i < this->chatViewHeight && i < messageHistory.size(); i++) {
-        printw("%d: %s\n", i, messageHistory[i + this->scrollOffset].c_str());
+        printw("%d: %s\n", i + scrollOffset, messageHistory[i + this->scrollOffset].c_str());
     }
     messageHistoryMutex.unlock();
 }

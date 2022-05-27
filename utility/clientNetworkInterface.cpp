@@ -3,12 +3,14 @@
 #include <string.h>
 #include <stdio.h>
 #include <unistd.h>
+#include "network.h"
 
 using namespace std;
 
 int server_fd;
-
+NetworkFormatter nformat;
 ClientNetworkInterface::ClientNetworkInterface(string host) {
+    nformat = NetworkFormatter();
     addrinfo* searchResults = searchForHost(host);
     server_fd = connectToHost(searchResults);
 }   
@@ -17,18 +19,50 @@ ClientNetworkInterface::~ClientNetworkInterface(){
     close(server_fd);
 }
 string ClientNetworkInterface::readNext() {
-    char msg_buffer[MSG_BUFFER_SIZE];
-    int bytes_read = recv(server_fd, msg_buffer, sizeof(msg_buffer), 0);
-    return string(msg_buffer, sizeof(msg_buffer));
+    int size = deserialize_int(readString(server_fd, MSG_SIZE_FIELD_LENGTH));
+    string res = readString(server_fd, size);
+    return res;
 }
+
+string ClientNetworkInterface::readString(int fd, int len) {
+    char buffer[len];
+    readUntilFull(fd, buffer, len);
+    return string(buffer, strlen(buffer));
+}
+
+void ClientNetworkInterface::readUntilFull(int fd, char* buffer, int target_len) {
+    int bytes_read = 0;
+    while (bytes_read < target_len) {
+        int res = recv(fd, buffer + bytes_read, target_len - bytes_read, 0);
+        if (res == 0) {
+            fprintf(stderr, "[readUntilFull] server disconnected");
+            exit(1);
+        } else if (res == -1) {
+            perror("[readUntilFull]");
+            exit(1);
+        } else {
+            bytes_read += res;
+        }
+    }
+}
+
 bool ClientNetworkInterface::areMessages() {
     return false;
 }
 size_t ClientNetworkInterface::sendMessage(string message) {
-    const char* msg = message.c_str();
-    size_t msg_len = strlen(msg);
-    int bytes_sent = send(server_fd, msg, msg_len, 0);
-    return 0;
+    nformat.setData(message);
+    nformat.setOpcode(0);
+    string msg = nformat.networkForm();
+    int len = msg.length();
+    int bytes_sent = 0;
+    while (bytes_sent < len) {
+        int res = send(server_fd, msg.c_str() + bytes_sent, len - bytes_sent, 0);
+        if (res == -1) {
+            return -1;
+        }
+        bytes_sent += res;
+    }
+    return bytes_sent;
 }
 
 addrinfo* ClientNetworkInterface::searchForHost(string host) {

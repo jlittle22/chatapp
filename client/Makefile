@@ -7,8 +7,8 @@ ARCHIVE = $(LIB)/libutility.a
 
 all: client
 
-server: client.cpp $(ARCHIVE)
-	$(CPP) $(CPPFLAGS) -o client client.cpp -l utility
+client: client.cpp $(ARCHIVE)
+	$(CPP) $(CPPFLAGS) -o client *.cpp -l utility -lncurses
 
 clean:
 	rm -f client *.o 
