@@ -42,7 +42,6 @@ ServerNetworkInterface::ServerNetworkInterface(int listener_fd, struct timeval t
 }
 
 ServerNetworkInterface::~ServerNetworkInterface() {
-    fprintf(stderr, "I'm called.\n");
     for (auto it = subscribers.begin(); it != subscribers.end();) {
         it = eraseSubscriber(it);
     }
@@ -66,8 +65,10 @@ void ServerNetworkInterface::broadcastMessage(string message, int fd_to_exclude)
 
 string ServerNetworkInterface::readNextMessage(SubscriberContext *sender) {
     pthread_mutex_lock(&msgs_lock);
+    fprintf(stderr, "checking for new msg\n");
     while (messages.empty())
         pthread_cond_wait(&q_sig, &msgs_lock);
+    fprintf(stderr, "reading message!\n");
     pair<SubscriberContext, string> res = messages.front();
     messages.pop();
     pthread_mutex_unlock(&msgs_lock);

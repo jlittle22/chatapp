@@ -23,7 +23,6 @@ static int safeSend(int fd, const void* msg, int len, int flags) {
 } 
 
 ClientNetworkInterface::ClientNetworkInterface(string host) {
-    nformat = NetworkFormatter();
     addrinfo* searchResults = searchForHost(host);
     server_fd = connectToHost(searchResults);
 }   
