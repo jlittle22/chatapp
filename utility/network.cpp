@@ -5,7 +5,7 @@
 
 using namespace std;
 
-#define STREAM_LEN_OFFSET 0
+#define FORM_LEN_OFFSET 0
 #define OPCODE_OFFSET 4
 #define DATA_OFFSET 5
 
@@ -24,91 +24,76 @@ uint32_t deserialize_int(std::string x) {
   return ntohl(new_item);
 }
 
-NetworkFormatter::NetworkFormatter() {
-    opcode = 0;  // default to sending a chat message
-    data = "";
+void NetworkFormatter::setForm(FormType opcode, void* data) {
+    this->opcode = opcode;
+    this->data = data;
 }
 
-void NetworkFormatter::parseNetworkForm(string offTheWire) {
-    size_t str_len = offTheWire.length();
-    uint32_t data_len = deserialize_int(offTheWire.substr(STREAM_LEN_OFFSET, sizeof(uint32_t)));
-    
-    if (str_len != data_len) {
-        fprintf(stderr, "Warning: The network data claims to be of length %u, but it's actually length %lu.\n", data_len, str_len);
-    }
-
-    opcode = uint8_t(offTheWire[OPCODE_OFFSET]);
-
-    switch(opcode) {
-        case C2S_CHAT_SENT: {
-            data = offTheWire.substr(DATA_OFFSET);
-            
-            if (data.length() != data_len - DATA_OFFSET) {
-                fprintf(stderr, "Warning in opcode %d: The network claims that the message is %u bytes long, but it's actually %lu.\n", opcode, data_len - DATA_OFFSET, data.length());
-            }
-
-            break;
-        } case S2C_CHAT_ACK: {
-            break;
-        } default: {
-            fprintf(stderr, "Warning: Unknown opcode %u.\n", opcode);
-        }
-    }    
-}
-
-uint8_t NetworkFormatter::getOpcode() {
+FormType NetworkFormatter::getType() {
     return opcode;
 }
 
-string NetworkFormatter::getData() {
+void* NetworkFormatter::getData() {
     return data;
 }
 
-NetworkFormatter::~NetworkFormatter() {
-    // do nothing
-}
-
-void NetworkFormatter::setOpcode(uint8_t oc) {
-    opcode = oc;
-}
-
-void NetworkFormatter::setData(string m) {
-    data = m;
-}
-
-string NetworkFormatter::networkForm() {
-    size_t data_len = data.length();
-    uint32_t stream_size = sizeof(uint32_t) + sizeof(uint8_t) + data_len;
-    string num_bytes_str = serialize_int(stream_size);
-    char opcode_char = char(opcode);
-
-    char bytes[stream_size];
-    size_t i;
-    for (i = 0; i < sizeof(uint32_t); i++) {
-        bytes[i] = num_bytes_str[i];
-    }
-
-    bytes[i++] = opcode_char;
+std::string NetworkFormatter::serialize() {
+    std::string data_str;
+    size_t data_len;
 
     switch(opcode) {
-        case C2S_CHAT_SENT: {
-            size_t j;
-            for (j = 0; j < data_len; j++) {
-                bytes[i + j] = data[j];
-            }
-
-            if (j + i != stream_size) {
-                fprintf(stderr, "Error: j + i == %lu but stream_size == %d\n", j+i, stream_size);
-            }
+        case CHAT_SEND_C2S: {
+            data_str = ((ChatSendC2S*)data)->msg;
+            data_len = data_str.length();
             break;
-        }
-        case S2C_CHAT_ACK: {
+        } case CHAT_ACK_S2C: {
+            data_str = "";
+            data_len = 0;
+            break;
+        } default: {
+            fprintf(stderr, "Error serializing network form: unknown opcode %u.\n", opcode);
             break;
         }
     }
 
-    string forTheWire(bytes, stream_size);
-    return forTheWire;
+    size_t form_len = sizeof(uint32_t) + sizeof(uint8_t) + data_len;
+    std::string form_len_str = serialize_int(form_len);
+    char opcode_char = char(opcode);
+
+    char form[form_len];
+    size_t i;
+    for (i = 0; i < sizeof(uint32_t); ++i) {
+        form[i] = form_len_str[i];
+    }
+
+    form[i++] = opcode_char;
+    
+    for (size_t j = 0; j < data_len; j++) {
+        form[i + j] = data_str[j];
+    }
+
+    return std::string(form, form_len);
+}
+
+void NetworkFormatter::deserialize(std::string form) {
+    uint32_t real_form_len = form.length();
+    uint32_t form_len = deserialize_int(form.substr(FORM_LEN_OFFSET, sizeof(uint32_t)));
+
+    if(form_len != real_form_len) {
+        fprintf(stderr, "Error parsing network form: the network data claims to be of length %u, but it's actually length %u.\n", form_len, real_form_len);
+    }
+
+    opcode = (FormType)form[OPCODE_OFFSET];
+    std::string data_str = form.substr(DATA_OFFSET);
+    switch(opcode) {
+        case CHAT_SEND_C2S: {
+            data = &data_str;
+            break;
+        } default: {
+            fprintf(stderr, "Error parsing network form: unknown opcode %u.\n", opcode);
+            break;
+        }
+    }
 }
 
 string sockaddr_to_ip_string(struct sockaddr * sa) {
@@ -167,7 +152,3 @@ void print_addrinfo(struct addrinfo p) {
     printf("  Sock Type: %d\n", p.ai_socktype);
     printf("  Protocol: %d\n", p.ai_protocol);
 }
-
-
-
-

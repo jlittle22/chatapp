@@ -36,32 +36,31 @@ int main() {
         return 1;
     }
 
-    NetworkFormatter f = NetworkFormatter();
-
     string msg = "";
     ServerNetworkInterface::SubscriberContext c;
+    NetworkFormatter f = NetworkFormatter();
     
     cerr << "Top of while loop!" << endl; 
     while (1) {
         cerr << "waiting for new msg" << endl;
         msg = sni.readNextMessage(&c);
         cerr << "Message read." << endl;
-        f.parseNetworkForm(msg);
-        printf("Sender: %d, Op code: %d, Msg: %s\n", c.fd, f.getOpcode(), f.getData().c_str());
-        switch(f.getOpcode()) {
-            case C2S_CHAT_SENT: {
-                // need to read message, broadcast it to all clients except sender
-                sni.broadcastMessage(f.getData(), c.fd);
-                f.setOpcode(S2C_CHAT_ACK);
-                f.setData("");
-                sni.sendMessage(f.networkForm(), c.fd);
+        f.deserialize(msg);
+
+        fprintf(stderr, "Sender: %d, Opcode: %d\n", c.fd, f.getType());
+        switch(f.getType()) {
+            case CHAT_SEND_C2S: {
+                ChatSendC2S data = *(ChatSendC2S*)f.getData();
+                sni.broadcastMessage(data.msg, c.fd);
+
+                f.setForm(CHAT_ACK_S2C, nullptr);
+                sni.sendMessage(f.serialize(), c.fd);
                 break;
+            } default: {
+                fprintf(stderr, "Error in main server loop: unknown network form type %d\n", f.getType());
+                f.setForm(ERROR_S2C, nullptr);
+                sni.sendMessage(f.serialize(), c.fd);
             }
-            default:
-                printf("Unknown operation: %d... ignoring.\n", f.getOpcode());
-                f.setOpcode(S2C_ERROR);
-                f.setData("");
-                sni.sendMessage(f.networkForm(), c.fd);
         }
     }
 
