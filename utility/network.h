@@ -34,12 +34,14 @@ struct ErrorS2C {
 class NetworkFormatter {
 	public:
 		void setForm(FormType opcode, void* data);
+		
+		FormType parseType(std::string form);
+		void parseData(std::string form, void* form_data);
 
 		FormType getType();
 		void* getData();
 		
 		std::string serialize();
-		void deserialize(std::string form);
 	private:
 		FormType opcode;
 		void* data;

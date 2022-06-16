@@ -29,6 +29,32 @@ void NetworkFormatter::setForm(FormType opcode, void* data) {
     this->data = data;
 }
 
+FormType NetworkFormatter::parseType(std::string form) {
+    uint32_t real_form_len = form.length();
+    uint32_t form_len = deserialize_int(form.substr(FORM_LEN_OFFSET, sizeof(uint32_t)));
+
+    if(form_len != real_form_len) {
+        fprintf(stderr, "Error deserializing network form: the network data claims to be of length %u, but it's actually length %u.\n", form_len, real_form_len);
+    }
+    
+    opcode = (FormType)form[OPCODE_OFFSET];
+    return opcode;
+}
+
+void NetworkFormatter::parseData(std::string form, void* form_data) {
+    std::string data_str = form.substr(DATA_OFFSET);
+    switch(opcode) {
+        case CHAT_SEND_C2S: {
+            ((ChatSendC2S*)form_data)->msg = data_str;
+            break;
+        } default: {
+            fprintf(stderr, "Error deserializing network form: unknown opcode %u.\n", opcode);
+            break;
+        }
+    }
+    
+}
+
 FormType NetworkFormatter::getType() {
     return opcode;
 }
@@ -75,26 +101,6 @@ std::string NetworkFormatter::serialize() {
     return std::string(form, form_len);
 }
 
-void NetworkFormatter::deserialize(std::string form) {
-    uint32_t real_form_len = form.length();
-    uint32_t form_len = deserialize_int(form.substr(FORM_LEN_OFFSET, sizeof(uint32_t)));
-
-    if(form_len != real_form_len) {
-        fprintf(stderr, "Error parsing network form: the network data claims to be of length %u, but it's actually length %u.\n", form_len, real_form_len);
-    }
-
-    opcode = (FormType)form[OPCODE_OFFSET];
-    std::string data_str = form.substr(DATA_OFFSET);
-    switch(opcode) {
-        case CHAT_SEND_C2S: {
-            data = &data_str;
-            break;
-        } default: {
-            fprintf(stderr, "Error parsing network form: unknown opcode %u.\n", opcode);
-            break;
-        }
-    }
-}
 
 string sockaddr_to_ip_string(struct sockaddr * sa) {
     char ipstr[INET6_ADDRSTRLEN];

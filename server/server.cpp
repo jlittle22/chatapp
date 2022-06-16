@@ -45,14 +45,16 @@ int main() {
         cerr << "waiting for new msg" << endl;
         msg = sni.readNextMessage(&c);
         cerr << "Message read." << endl;
-        f.deserialize(msg);
+        FormType msg_type = f.parseType(msg);
 
-        fprintf(stderr, "Sender: %d, Opcode: %d\n", c.fd, f.getType());
-        switch(f.getType()) {
+        fprintf(stderr, "Sender: %d, Opcode: %d\n", c.fd, msg_type);
+        switch(msg_type) {
             case CHAT_SEND_C2S: {
-                ChatSendC2S data = *(ChatSendC2S*)f.getData();
+                ChatSendC2S data;
+                f.parseData(msg, &data);
+                std::cerr << data.msg << std::endl;
                 sni.broadcastMessage(data.msg, c.fd);
-
+                
                 f.setForm(CHAT_ACK_S2C, nullptr);
                 sni.sendMessage(f.serialize(), c.fd);
                 break;
