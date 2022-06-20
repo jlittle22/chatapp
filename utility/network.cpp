@@ -9,6 +9,89 @@ using namespace std;
 #define OPCODE_OFFSET 4
 #define DATA_OFFSET 5
 
+NetworkForm::NetworkForm(FormType opcode, std::string* data) {
+    this->opcode = opcode;
+    this->data = data;
+    data_on_heap = false;
+}
+
+NetworkForm::NetworkForm(std::string form) {
+    uint32_t real_form_len = form.length();
+    uint32_t form_len = deserialize_int(form.substr(FORM_LEN_OFFSET, sizeof(uint32_t)));
+
+    if(form_len != real_form_len) {
+        fprintf(stderr, "Error deserializing network form: the network data claims to be of length %u, but it's actually length %u.\n", form_len, real_form_len);
+    }
+    
+    opcode = (FormType)form[OPCODE_OFFSET];
+
+    size_t n_fields = NUM_FIELDS[opcode];
+    switch(n_fields) {
+        case 0: {
+            data = nullptr;
+            data_on_heap = false;
+            break;
+        } case 1: {
+            data = (std::string*)malloc(sizeof(std::string));
+            data_on_heap = true;
+            *data = form.substr(DATA_OFFSET);
+            break;
+        } default: {
+            data = (std::string*)malloc(n_fields * sizeof(std::string));
+            data_on_heap = true;
+
+            size_t field_offset = DATA_OFFSET;
+            for(size_t i = 0; i < n_fields; ++i) {
+                field_offset += read_field(form.substr(field_offset), &data[i]);
+            }
+            break;
+        }
+    }
+}
+
+NetworkForm::~NetworkForm() {
+    if(data_on_heap) {
+        free(data);
+    }
+}
+
+FormType NetworkForm::getType() {
+    return opcode;
+}
+
+std::string* NetworkForm::getData() {
+    return data;
+}
+
+std::string NetworkForm::serialize() {
+    std::string data_str;
+
+    size_t n_fields = NUM_FIELDS[opcode];
+    switch(n_fields) {
+        case 0: {
+            data_str = "";
+            break;
+        } case 1: {
+            data_str = data[0];
+            break;
+        } default: {
+            for(size_t i = 0; i < n_fields; ++i) {
+                data_str.append(serialize_int(data[i].length()));
+                data_str.append(data[i]);
+            }
+            break;
+        }
+    }
+
+    size_t form_len = sizeof(uint32_t) + sizeof(uint8_t) + data_str.length();
+
+    std::string form = serialize_int(form_len);
+    form.push_back(char(opcode));
+    form.append(data_str);
+
+    return form;
+}
+
 std::string serialize_int(uint32_t x) {
   uint32_t network_x = htonl(x);
   std::stringstream sstream;
@@ -24,85 +107,11 @@ uint32_t deserialize_int(std::string x) {
   return ntohl(new_item);
 }
 
-NetworkForm::NetworkForm(FormType opcode, std::string* data) {
-    this->opcode = opcode;
-    this->data = data;
-    data_on_heap = false;
-}
+size_t read_field(std::string field, std::string* txt) {
+    uint32_t len = deserialize_int(field.substr(0, sizeof(uint32_t)));
+    *txt = field.substr(sizeof(uint32_t), len);
 
-FormType NetworkForm::getType() {
-    return opcode;
-}
-
-std::string* NetworkForm::getData() {
-    return data;
-}
-
-NetworkForm::NetworkForm(std::string form) {
-    uint32_t real_form_len = form.length();
-    uint32_t form_len = deserialize_int(form.substr(FORM_LEN_OFFSET, sizeof(uint32_t)));
-
-    if(form_len != real_form_len) {
-        fprintf(stderr, "Error deserializing network form: the network data claims to be of length %u, but it's actually length %u.\n", form_len, real_form_len);
-    }
-    
-    opcode = (FormType)form[OPCODE_OFFSET];
-
-    std::string data_str = form.substr(DATA_OFFSET);
-    switch(opcode) {
-        case CHAT_SEND_C2S: {
-            data = (std::string*)malloc(sizeof(std::string));
-            data[0] = data_str;
-            break;
-        } default: {
-            fprintf(stderr, "Error deserializing network form: unknown opcode %u.\n", opcode);
-            break;
-        }
-    }
-    data_on_heap = true;
-}
-
-std::string NetworkForm::serialize() {
-    std::string data_str;
-    size_t data_len;
-
-    switch(opcode) {
-        case CHAT_SEND_C2S: {
-            data_str = data[0];
-            data_len = data_str.length();
-            break;
-        } case CHAT_ACK_S2C: {
-            data_str = "";
-            data_len = 0;
-            break;
-        } default: {
-            fprintf(stderr, "Error serializing network form: unknown opcode %u.\n", opcode);
-            break;
-        }
-    }
-
-    size_t form_len = sizeof(uint32_t) + sizeof(uint8_t) + data_len;
-    std::string form_len_str = serialize_int(form_len);
-
-    char form[form_len];
-    size_t i;
-    for (i = 0; i < sizeof(uint32_t); ++i) {
-        form[i] = form_len_str[i];
-    }
-
-    form[i++] = char(opcode);
-    
-    for (size_t j = 0; j < data_len; j++) {
-        form[i + j] = data_str[j];
-    }
-
-    return std::string(form, form_len);
-}
-
-NetworkForm::~NetworkForm() {
-    if(data_on_heap) {
-        free(data);
-    }
+    return len;
 }
 
 string sockaddr_to_ip_string(struct sockaddr * sa) {

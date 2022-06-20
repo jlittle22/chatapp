@@ -10,6 +10,7 @@
 #include <inttypes.h>
 #include <string>
 
+const size_t NUM_FIELDS[] = {1, 0, 2, 0};
 
 enum FormType {
 	CHAT_SEND_C2S = 0,
@@ -21,7 +22,7 @@ enum FormType {
 class NetworkForm {
 	public:
 		NetworkForm(FormType opcode, std::string* data);
-		NetworkForm(std::string serializedForm);
+		NetworkForm(std::string form);
 
 		~NetworkForm();
 
@@ -35,6 +36,7 @@ class NetworkForm {
 		bool data_on_heap;
 };
 
+size_t read_field(std::string field, std::string* txt);
 std::string serialize_int(uint32_t x);
 uint32_t deserialize_int(std::string x);
 std::string sockaddr_to_ip_string(struct sockaddr *sa);
