@@ -15,36 +15,24 @@ enum FormType {
 	CHAT_SEND_C2S = 0,
 	CHAT_ACK_S2C,
 	CHAT_SEND_S2C,
-	ERROR_S2C
+	ERROR
 };
 
-struct ChatSendC2S {
-	std::string msg;
-};
-
-struct ChatSendS2C {
-	std::string senderId;
-	std::string msg;
-};
-
-struct ErrorS2C {
-	std::string errMsg;
-};
-
-class NetworkFormatter {
+class NetworkForm {
 	public:
-		void setForm(FormType opcode, void* data);
-		
-		FormType parseType(std::string form);
-		void parseData(std::string form, void* form_data);
+		NetworkForm(FormType opcode, std::string* data);
+		NetworkForm(std::string serializedForm);
+
+		~NetworkForm();
 
 		FormType getType();
-		void* getData();
+		std::string* getData();
 		
 		std::string serialize();
 	private:
 		FormType opcode;
-		void* data;
+		std::string* data;
+		bool data_on_heap;
 };
 
 std::string serialize_int(uint32_t x);

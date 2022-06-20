@@ -24,12 +24,21 @@ uint32_t deserialize_int(std::string x) {
   return ntohl(new_item);
 }
 
-void NetworkFormatter::setForm(FormType opcode, void* data) {
+NetworkForm::NetworkForm(FormType opcode, std::string* data) {
     this->opcode = opcode;
     this->data = data;
+    data_on_heap = false;
 }
 
-FormType NetworkFormatter::parseType(std::string form) {
+FormType NetworkForm::getType() {
+    return opcode;
+}
+
+std::string* NetworkForm::getData() {
+    return data;
+}
+
+NetworkForm::NetworkForm(std::string form) {
     uint32_t real_form_len = form.length();
     uint32_t form_len = deserialize_int(form.substr(FORM_LEN_OFFSET, sizeof(uint32_t)));
 
@@ -38,38 +47,28 @@ FormType NetworkFormatter::parseType(std::string form) {
     }
     
     opcode = (FormType)form[OPCODE_OFFSET];
-    return opcode;
-}
 
-void NetworkFormatter::parseData(std::string form, void* form_data) {
     std::string data_str = form.substr(DATA_OFFSET);
     switch(opcode) {
         case CHAT_SEND_C2S: {
-            ((ChatSendC2S*)form_data)->msg = data_str;
+            data = (std::string*)malloc(sizeof(std::string));
+            data[0] = data_str;
             break;
         } default: {
             fprintf(stderr, "Error deserializing network form: unknown opcode %u.\n", opcode);
             break;
         }
     }
-    
+    data_on_heap = true;
 }
 
-FormType NetworkFormatter::getType() {
-    return opcode;
-}
-
-void* NetworkFormatter::getData() {
-    return data;
-}
-
-std::string NetworkFormatter::serialize() {
+std::string NetworkForm::serialize() {
     std::string data_str;
     size_t data_len;
 
     switch(opcode) {
         case CHAT_SEND_C2S: {
-            data_str = ((ChatSendC2S*)data)->msg;
+            data_str = data[0];
             data_len = data_str.length();
             break;
         } case CHAT_ACK_S2C: {
@@ -84,7 +83,6 @@ std::string NetworkFormatter::serialize() {
 
     size_t form_len = sizeof(uint32_t) + sizeof(uint8_t) + data_len;
     std::string form_len_str = serialize_int(form_len);
-    char opcode_char = char(opcode);
 
     char form[form_len];
     size_t i;
@@ -92,7 +90,7 @@ std::string NetworkFormatter::serialize() {
         form[i] = form_len_str[i];
     }
 
-    form[i++] = opcode_char;
+    form[i++] = char(opcode);
     
     for (size_t j = 0; j < data_len; j++) {
         form[i + j] = data_str[j];
@@ -101,6 +99,11 @@ std::string NetworkFormatter::serialize() {
     return std::string(form, form_len);
 }
 
+NetworkForm::~NetworkForm() {
+    if(data_on_heap) {
+        free(data);
+    }
+}
 
 string sockaddr_to_ip_string(struct sockaddr * sa) {
     char ipstr[INET6_ADDRSTRLEN];

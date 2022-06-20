@@ -38,30 +38,28 @@ int main() {
 
     string msg = "";
     ServerNetworkInterface::SubscriberContext c;
-    NetworkFormatter f = NetworkFormatter();
     
     cerr << "Top of while loop!" << endl; 
     while (1) {
         cerr << "waiting for new msg" << endl;
         msg = sni.readNextMessage(&c);
         cerr << "Message read." << endl;
-        FormType msg_type = f.parseType(msg);
+        NetworkForm off_the_wire(msg);
+        FormType form_type = off_the_wire.getType();
 
-        fprintf(stderr, "Sender: %d, Opcode: %d\n", c.fd, msg_type);
-        switch(msg_type) {
+        fprintf(stderr, "Sender: %d, Opcode: %d\n", c.fd, form_type);
+        switch(form_type) {
             case CHAT_SEND_C2S: {
-                ChatSendC2S data;
-                f.parseData(msg, &data);
-                std::cerr << data.msg << std::endl;
-                sni.broadcastMessage(data.msg, c.fd);
+                sni.broadcastMessage(off_the_wire.getData()[0], c.fd);
                 
-                f.setForm(CHAT_ACK_S2C, nullptr);
-                sni.sendMessage(f.serialize(), c.fd);
+                NetworkForm for_the_wire(CHAT_ACK_S2C, nullptr);
+                sni.sendMessage(for_the_wire.serialize(), c.fd);
                 break;
             } default: {
-                fprintf(stderr, "Error in main server loop: unknown network form type %d\n", f.getType());
-                f.setForm(ERROR_S2C, nullptr);
-                sni.sendMessage(f.serialize(), c.fd);
+                fprintf(stderr, "Error in main server loop: unknown network form type %d\n", form_type);
+                
+                NetworkForm for_the_wire(ERROR, nullptr);
+                sni.sendMessage(for_the_wire.serialize(), c.fd);
             }
         }
     }
